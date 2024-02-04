@@ -33,8 +33,8 @@ def add_csv_to_gpx(csv_filename, gpx_trkseg, doc):
             trkpt.setAttribute("lat", str(row["LatitudeDegrees"]))
             trkpt.setAttribute("lon", str(row["LongitudeDegrees"]))
 
-            if 'UnixTimeMillis' in row:
-                unix_time = row["UnixTimeMillis"]
+            if 'utcTimeMillis' in row:
+                unix_time = row["utcTimeMillis"]
                 # 创建名称标签，包含Unix时间戳
                 name = doc.createElement("name")
                 name_text = doc.createTextNode(unix_time)
@@ -59,9 +59,12 @@ def save_gpx(doc, output_filename):
 def csv_to_gpx_thread(csv_filename):
     doc, trkseg = create_gpx_doc()
     add_csv_to_gpx(csv_filename, trkseg, doc)
+
+    # 使用 os.path 模块来处理文件路径
     parts_of_path = csv_filename.split(os.sep)
-    date_folder = parts_of_path[-3]
-    phone_name = parts_of_path[-2]
+    date_folder = os.path.basename(os.path.dirname(os.path.dirname(csv_filename)))
+    phone_name = os.path.basename(os.path.dirname(csv_filename))
+
     gpx_filename = os.path.join(os.path.dirname(csv_filename), f"{date_folder}_{phone_name}.gpx")
     save_gpx(doc, gpx_filename)
 
@@ -73,7 +76,7 @@ def find_csv_files(root_folder, filename="ground_truth.csv"):
 
 
 def main():
-    root_folder = r'G:\deep_gnss\deep_gnss_zcy\kaggle2023\sdc2023\train'
+    root_folder = '/Users/park/PycharmProjects/gnss/sdc2023/train'
     threads = []
 
     for csv_file in find_csv_files(root_folder):
