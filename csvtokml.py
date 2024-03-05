@@ -57,7 +57,7 @@ def find_csv_files(root_folder, filename="ground_truth.csv"):
 
 
 def main():
-    root_folder = "/Users/park/PycharmProjects/gnss/sdc2023/train"  # 根目录，根据实际情况进行修改
+    root_folder = "sdc2023/train"  # 根目录，根据实际情况进行修改
     threads = []
 
     for csv_file in find_csv_files(root_folder):

@@ -3,7 +3,7 @@ from pyproj import Transformer
 import os
 import concurrent.futures
 
-base_path = '/sdc2023/train/'
+base_path = '/Users/park/PycharmProjects/gnss/sdc2023/train/'
 
 # 设定输入文件路径
 #gnss_csv_path = '/Users/park/PycharmProjects/gnss/sdc2023/train/2020-06-25-00-34-us-ca-mtv-sb-101/pixel4/device_gnss.csv'
@@ -36,7 +36,7 @@ def process_trace_phone(trace, phone_model):
     merged_df.to_csv(ground_truth_csv_path, index=False)
     print(f"Processed trace {trace} with phone {phone_model}")
 
-
+# process_trace_phone('2023-09-07-22-48-us-ca-routebc2','pixel4xl')
 traces = [d.name for d in os.scandir(base_path) if d.is_dir()]
 
 # 对于每个trace，获取其下的所有phone_model
