@@ -1,0 +1,11 @@
+- gnss
+  - data
+    - processed
+    - raw
+      - sdc2023
+        - metadata
+        - test
+        - train
+          - 2020-06-25-00-34
+            - pixel4
+              - supplemental
