@@ -38,7 +38,7 @@ def filterdata(file_path,gt_path,out_path):
     # 加载CSV文件
     gnss_data = pd.read_csv(file_path, low_memory=False)
     gt_data = pd.read_csv(gt_path,low_memory=False)
-    gt_timestamps = set(gt_data['UnixTimeMillis'])
+    gt_timestamps = set(gt_data['utcTimeMillis'])
 
     # 过滤掉那些不在真值数据时间戳中的观测数据记录
     gnss_data = gnss_data[gnss_data['utcTimeMillis'].isin(gt_timestamps)]
@@ -67,7 +67,7 @@ def filterdata(file_path,gt_path,out_path):
     sorted_data = gnss_data.sort_values(by=['utcTimeMillis', 'StateWeight', 'SvElevationDegrees'],
                                         ascending=[True, False, False])
     utc1 = np.array([gnss_data['utcTimeMillis'].unique()])
-    utc2 = np.array([gt_data['UnixTimeMillis']])
+    utc2 = np.array([gt_data['utcTimeMillis']])
     print(utc1.shape[1] - utc2.shape[1])
 
     # 计算每个时间戳的观测数量
@@ -89,8 +89,15 @@ def filterdata(file_path,gt_path,out_path):
     # #num.append(observations_per_timestamp)
 
     # 保存排序后的数据到一个新的CSV文件
-    out_path = os.path.join(out_path,"gnss_data.csv") # 替换为您的输出文件路径
-    sorted_data.to_csv(out_path, index=False)
+    # 确定CSV文件的完整路径
+    out_csv_path = os.path.abspath(os.path.join(out_path, "gnss_data.csv"))
+    # 获取CSV文件的父目录路径
+    out_dir = os.path.dirname(out_csv_path)
+    # 如果父目录不存在，则创建它
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    sorted_data.to_csv(out_csv_path, index=False)
+
 
     # 输出每个时间戳的观测数量
     #print("Observations per timestamp:")
@@ -100,7 +107,6 @@ def filterdata(file_path,gt_path,out_path):
 
 def process_data(args):
     file_path, gt_path, out_path = args
-    # 在这里调用您的filterdata函数
     filterdata(file_path, gt_path, out_path)
 
 # og_path=os.path.join("../kaggle2023")
@@ -132,18 +138,29 @@ def process_data(args):
         #filterdata(gnss_csv_path,gt_path,out_path)
 
 if __name__ == "__main__":
-    og_path = os.path.join("../kaggle2023")
-    data_path = os.path.join(og_path, r"sdc2023\train")
-    filtered_path = os.path.join(og_path,"filtered_data")
+    current_script_path = Path(__file__).resolve()
+
+    # 项目根目录的路径
+    root_path = current_script_path.parents[2]
+
+    # 构建到 'data/processed' 和 'data/raw' 的路径
+    filtered_path = root_path / "data" / "processed"
+    data_raw_path = root_path / "data" / "raw"
+
+    # 如果您需要构建 'data/sdc2023/train' 的路径
+    data_path = data_raw_path / "sdc2023" / "train"
     # 创建一个包含所有任务的列表
     tasks = []
     for trace in os.listdir(data_path):
-        for phones in os.listdir(os.path.join(data_path, trace)):
-            phone_path = os.path.join(data_path, trace, phones)
-            out_path = os.path.join(filtered_path, trace, phones)
-            gnss_csv_path = os.path.join(phone_path, "device_gnss.csv")
-            gt_path = os.path.join(phone_path, 'ground_truth.csv')
-            tasks.append((gnss_csv_path, gt_path, out_path))
+        trace_path = os.path.join(data_path, trace)
+        if os.path.isdir(trace_path):  # 确保trace是一个目录
+            for phones in os.listdir(trace_path):
+                phone_path = os.path.join(trace_path, phones)
+                if os.path.isdir(phone_path):  # 确保phones是一个目录
+                    out_path = os.path.join(filtered_path, trace, phones)
+                    gnss_csv_path = os.path.join(phone_path, "device_gnss.csv")
+                    gt_path = os.path.join(phone_path, 'ground_truth.csv')
+                    tasks.append((gnss_csv_path, gt_path, out_path))
 
     # 创建一个进程池
     pool = multiprocessing.Pool()
