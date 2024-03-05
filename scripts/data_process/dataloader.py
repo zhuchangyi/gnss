@@ -66,7 +66,7 @@ class GNSSDataset(Dataset):
 
 
 # Usage
-root_dir = r'G:\deep_gnss\deep_gnss_zcy\kaggle2023\filtered_data'
+root_dir = './data/processed'
 dataset = GNSSDataset(root_dir)
 dataloader = DataLoader(dataset, batch_size=512, shuffle=True)
 
