@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import torch
 import numpy as np
+from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
 
 
@@ -20,13 +21,19 @@ class GNSSDataset(Dataset):
 
             if os.path.exists(gnss_file) and os.path.exists(ground_truth_file):
                 gnss_df = pd.read_csv(gnss_file)
+                #print(gnss_df.head())
                 ground_truth_df = pd.read_csv(ground_truth_file)
-
+                wls_columns = ['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']
+                ground_truth_df = ground_truth_df.drop(columns=wls_columns, errors='ignore')
                 merged_df = pd.merge(gnss_df, ground_truth_df, on='utcTimeMillis')
                 unique_timestamps = merged_df['utcTimeMillis'].unique()
+                #print(gnss_df.columns)
+
 
                 for timestamp in unique_timestamps:
                     timestamp_data = merged_df[merged_df['utcTimeMillis'] == timestamp]
+                    print(timestamp_data.columns)
+
                     gnss_features = timestamp_data[
                         ['PseudorangeRateMetersPerSecond', 'PseudorangeRateUncertaintyMetersPerSecond',
                          'RawPseudorangeMeters', 'RawPseudorangeUncertaintyMeters', 'AccumulatedDeltaRangeMeters',
@@ -66,8 +73,14 @@ class GNSSDataset(Dataset):
 
 
 # Usage
-root_dir = './data/processed'
-dataset = GNSSDataset(root_dir)
+
+current_script_path = Path(__file__).resolve()
+root_path = current_script_path.parents[2]
+# 构建到 'data/processed' 和 'data/raw' 的路径
+filtered_path = root_path / "data" / "processed"
+if os.path.exists(filtered_path):
+    print("yes")
+dataset = GNSSDataset(filtered_path)
 dataloader = DataLoader(dataset, batch_size=512, shuffle=True)
 
 # Iterate through the dataloader

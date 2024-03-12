@@ -1,11 +1,20 @@
 import pandas as pd
 import os
+import sys
+from pathlib import Path
+sys.path.append('/Users/park/PycharmProjects/gnss/src')
 import gnss_lib.coordinates as coord
+
+import gnss_lib_py as glp
 import numpy as np
 
-og_path = os.path.join("../kaggle2023")
-data_path = os.path.join(og_path, r"sdc2023\train")
-filtered_path = os.path.join(og_path, "filtered_data")
+
+current_script_path = Path(__file__).resolve()
+root_path = current_script_path.parents[2]
+filtered_path = root_path / "data" / "processed"
+data_raw_path = root_path / "data" / "raw"
+data_path = data_raw_path / "sdc2023" / "train"
+
 print(os.path.exists(filtered_path))
 
 
@@ -18,27 +27,24 @@ def wlsmove():
                 [gnss_data['WlsPositionXEcefMeters'], gnss_data['WlsPositionYEcefMeters'],
                  gnss_data['WlsPositionZEcefMeters']])
             utc1 = np.array([gnss_data['utcTimeMillis'].unique()])
-            wls_XYZ = np.transpose(wls_XYZ)
-            wls = coord.LocalCoord.from_ecef(wls_XYZ[0])
-            wls_ned = wls.ecef2ned(wls_XYZ)
-            wls_ned_df = pd.DataFrame(wls_ned, columns=['wls_ned_X', 'wls_ned_Y', 'wls_ned_Z'])
+            wls_ecef = np.transpose(wls_XYZ)
+            #wls = coord.LocalCoord.from_ecef(wls_XYZ[0])
 
             # 将更新后的DataFrame保存到CSV文件中
-            gnss_data = pd.concat([gnss_data, wls_ned_df], axis=1)
             # print(gnss_data.head())
             # gnss_data.to_csv(os.path.join(phone_path, phones, "gnss_data.csv"), index=False)
             # print(wls_ned_df.head())
             # print(np.array(wls_ned))
             gt = pd.read_csv(os.path.join(phone_path, phones, "ground_truth.csv"))
-            utc2 = np.array([gt['UnixTimeMillis']])
+            utc2 = np.array([gt['utcTimeMillis']])
             if (utc1.shape[1] - utc2.shape[1] != 0):
                 raise ValueError("gt and obs DIid not match ")
             gt_geo = gt[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()
             gt_ecef = coord.geodetic2ecef(gt_geo)
-            gt_ned = wls.ecef2ned(gt_ecef)
-            print(gt_ned.shape, wls_ned.shape)
+            #gt_ned = wls.ecef2ned(gt_ecef)
+            #print(gt_ned.shape, wls_ned.shape)
             # true_correction = gt_ned - wls_ned
-            gt_ned_df = pd.DataFrame(gt_ned, columns=['gt_ned_X', 'gt_ned_Y', 'gt_ned_X'])
+            gt_ecef_df = pd.DataFrame(gt_ecef, columns=['gt_ecef_X', 'gt_ecef_Y', 'gt_ecef_Z'])
             # true_correction_df = pd.DataFrame(true_correction,columns=['ture_X','ture_Y','ture_Z'])
             # gt = pd.concat([gt,gt_ned_df,true_correction_df], axis=1)
             # print(gt.head())
