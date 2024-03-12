@@ -2,10 +2,7 @@ import pandas as pd
 import os
 import sys
 from pathlib import Path
-sys.path.append('/Users/park/PycharmProjects/gnss/src')
-import gnss_lib.coordinates as coord
-
-import gnss_lib_py as glp
+from src.gnss_lib import coordinates as coord
 import numpy as np
 
 
@@ -81,12 +78,13 @@ def process_gnss_data(phone_path):
 def process_all_gnss_data(filtered_path):
     for trace in os.listdir(filtered_path):
         phone_path = os.path.join(filtered_path, trace)
-        for phones in os.listdir(phone_path):
-            process_gnss_data(os.path.join(phone_path, phones))
+        if os.path.isdir(phone_path):
+            for phones in os.listdir(phone_path):
+                process_gnss_data(os.path.join(phone_path, phones))
 
 
 # 使用函数处理所有数据
-process_all_gnss_data(filtered_path)
+#process_all_gnss_data(filtered_path)
 
 def process_ground_truth(phone_path):
     # Read the ground_truth and processed gnss data
@@ -111,31 +109,37 @@ def process_all_ground_truth(filtered_path):
 
 
 # 使用函数处理所有数据
-process_all_ground_truth(filtered_path)
+#process_all_ground_truth(filtered_path)
 
 def process_gt_ned(phone_path):
+    print(phone_path)
     ground_truth = pd.read_csv(os.path.join(phone_path, "ground_truth.csv"))
     wls_XYZ = np.array(
         [ground_truth['WlsPositionXEcefMeters'], ground_truth['WlsPositionYEcefMeters'],
          ground_truth['WlsPositionZEcefMeters']]).T
-    wls_ned = np.array([ground_truth['wls_ned_X'], ground_truth['wls_ned_Y'],
-                        ground_truth['wls_ned_Z']]).T
-    wls = coord.LocalCoord.from_ecef(wls_XYZ[0])
+    # wls_ned = np.array([ground_truth['wls_ned_X'], ground_truth['wls_ned_Y'],
+    #                     ground_truth['wls_ned_Z']]).T
+    #wls = coord.LocalCoord.from_ecef(wls_XYZ[0])
     gt_geo = ground_truth[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()
     gt_ecef = coord.geodetic2ecef(gt_geo)
-    gt_ned = wls.ecef2ned(gt_ecef)
-    true_correction = gt_ned - wls_ned
-    gt_ned_df = pd.DataFrame(gt_ned, columns=['gt_ned_X', 'gt_ned_Y', 'gt_ned_Z'])
+    #gt_ned = wls.ecef2ned(gt_ecef)
+    #true_correction = gt_ned - wls_ned
+    gt_ecef_df = pd.DataFrame(gt_ecef, columns=['gt_ecef_X', 'gt_ecef_Y', 'gt_ecef_Z'])
+    true_correction=gt_ecef-wls_XYZ
+    #gt_ned_df = pd.DataFrame(gt_ned, columns=['gt_ned_X', 'gt_ned_Y', 'gt_ned_Z'])
     ture_correct = pd.DataFrame(true_correction, columns=['ture_correct_X', 'ture_correct_Y', 'ture_correct_Z'])
-    gt = pd.concat([ground_truth, gt_ned_df, ture_correct], axis=1)
+    gt = pd.concat([ground_truth, gt_ecef_df, ture_correct], axis=1)
     gt.to_csv(os.path.join(phone_path, "ground_truth.csv"), index=False)
 
 def process_all_ground(filtered_path):
     for trace in os.listdir(filtered_path):
-        phone_path = os.path.join(filtered_path, trace)
-        for phones in os.listdir(phone_path):
-             #delete_obs(os.path.join(phone_path, phones))
-            process_gt_ned(os.path.join(phone_path, phones))
+        trace_path = os.path.join(filtered_path, trace)
+        if os.path.isdir(trace_path):  # 确保trace是一个目录
+            for phones in os.listdir(trace_path):
+                phone_path = os.path.join(trace_path, phones)
+                if os.path.isdir(phone_path):
+                    #print(phone_path,"dwd")
+                    process_gt_ned(phone_path)
 
 
 
