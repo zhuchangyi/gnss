@@ -1,16 +1,22 @@
 import os
 import pandas as pd
-import torch
 import numpy as np
+import torch
 from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
-
 
 class GNSSDataset(Dataset):
     def __init__(self, root_dir, num_satellites=20):
         self.root_dir = root_dir
         self.num_satellites = num_satellites
         self.data, self.labels = self._load_data()
+
+    def _correction_to_one_hot(self,correction):
+        error = np.clip(np.round(correction), -10, 10)
+        one_hot_vector = np.zeros(21)
+        index = int(error + 10)
+        one_hot_vector[index] = 1
+        return one_hot_vector
 
     def _load_data(self):
         all_features = []
@@ -21,18 +27,13 @@ class GNSSDataset(Dataset):
 
             if os.path.exists(gnss_file) and os.path.exists(ground_truth_file):
                 gnss_df = pd.read_csv(gnss_file)
-                #print(gnss_df.head())
                 ground_truth_df = pd.read_csv(ground_truth_file)
-                wls_columns = ['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']
-                ground_truth_df = ground_truth_df.drop(columns=wls_columns, errors='ignore')
+
                 merged_df = pd.merge(gnss_df, ground_truth_df, on='utcTimeMillis')
                 unique_timestamps = merged_df['utcTimeMillis'].unique()
-                #print(gnss_df.columns)
-
 
                 for timestamp in unique_timestamps:
                     timestamp_data = merged_df[merged_df['utcTimeMillis'] == timestamp]
-                    print(timestamp_data.columns)
 
                     gnss_features = timestamp_data[
                         ['PseudorangeRateMetersPerSecond', 'PseudorangeRateUncertaintyMetersPerSecond',
@@ -40,30 +41,21 @@ class GNSSDataset(Dataset):
                          'SvPositionXEcefMeters', 'SvPositionYEcefMeters', 'SvPositionZEcefMeters',
                          'SvVelocityXEcefMetersPerSecond', 'SvVelocityYEcefMetersPerSecond',
                          'SvVelocityZEcefMetersPerSecond',
-                         'SvClockBiasMeters',
-                         'WlsPositionXEcefMeters',
-                         'WlsPositionYEcefMeters',
-                         'WlsPositionZEcefMeters',
-                         ]].fillna(0).to_numpy()
+                         'SvClockBiasMeters'
+                        ]].fillna(0).to_numpy()
 
-
-                    # Padding if less than num_satellites
                     if len(timestamp_data) < self.num_satellites:
                         padding = np.zeros((self.num_satellites - len(timestamp_data), gnss_features.shape[1]))
                         gnss_features = np.vstack([gnss_features, padding])
 
-                    ground_truth = timestamp_data[['ture_correct_X', 'ture_correct_Y', 'ture_correct_Z']].iloc[
-                        0].fillna(0).to_numpy()
+                    correction_x = self._correction_to_one_hot(timestamp_data['ture_correct_X'].iloc[0])
+                    correction_y = self._correction_to_one_hot(timestamp_data['ture_correct_Y'].iloc[0])
+                    correction_z = self._correction_to_one_hot(timestamp_data['ture_correct_Z'].iloc[0])
 
                     all_features.append(gnss_features)
-                    all_labels.append(ground_truth)
-                    # print(len(all_features),len(all_features[0]))
-                    # print(len(all_labels), len(all_labels[0]))
+                    all_labels.append(np.stack([correction_x, correction_y, correction_z], axis=1))
 
-
-
-
-        return all_features, all_labels
+        return np.array(all_features), np.array(all_labels)
 
     def __len__(self):
         return len(self.data)
