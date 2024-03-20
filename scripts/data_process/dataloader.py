@@ -18,6 +18,8 @@ class GNSSDataset(Dataset):
         one_hot_vector[index] = 1
         return one_hot_vector
 
+    def _calculate_distance(self, x1, y1, z1, x2, y2, z2):
+        return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
     def _load_data(self):
         all_features = []
         all_labels = []
@@ -26,14 +28,39 @@ class GNSSDataset(Dataset):
             ground_truth_file = os.path.join(subdir, 'ground_truth.csv')
 
             if os.path.exists(gnss_file) and os.path.exists(ground_truth_file):
+                print(ground_truth_file)
+
                 gnss_df = pd.read_csv(gnss_file)
                 ground_truth_df = pd.read_csv(ground_truth_file)
+                print(gnss_df.head(2))
+                print(ground_truth_df.head(2))
+
+                columns_to_remove = ['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']  # 这里填入重复列的名称
+                gnss_df = gnss_df.drop(columns=columns_to_remove)
+                #print(gnss_df.columns)
+                print(ground_truth_df.columns)
+
 
                 merged_df = pd.merge(gnss_df, ground_truth_df, on='utcTimeMillis')
+                #print(merged_df.head(2))
                 unique_timestamps = merged_df['utcTimeMillis'].unique()
 
                 for timestamp in unique_timestamps:
                     timestamp_data = merged_df[merged_df['utcTimeMillis'] == timestamp]
+                    wls_X = timestamp_data['WlsPositionXEcefMeters'].iloc[0]
+                    wls_Y = timestamp_data['WlsPositionYEcefMeters'].iloc[0]
+                    wls_Z = timestamp_data['WlsPositionZEcefMeters'].iloc[0]
+
+                    distances_to_satellites = self._calculate_distance(
+                        wls_X, wls_Y, wls_Z,
+                        timestamp_data['SvPositionXEcefMeters'],
+                        timestamp_data['SvPositionYEcefMeters'],
+                        timestamp_data['SvPositionZEcefMeters']
+                    )
+
+                    # Calculate pseudorange residual
+                    pseudorange_residuals = timestamp_data['RawPseudorangeMeters'] - distances_to_satellites
+
 
                     gnss_features = timestamp_data[
                         ['PseudorangeRateMetersPerSecond', 'PseudorangeRateUncertaintyMetersPerSecond',
@@ -43,6 +70,8 @@ class GNSSDataset(Dataset):
                          'SvVelocityZEcefMetersPerSecond',
                          'SvClockBiasMeters'
                         ]].fillna(0).to_numpy()
+                    pseudorange_residuals = pseudorange_residuals.to_numpy().reshape(-1, 1)
+                    gnss_features = np.hstack([gnss_features, pseudorange_residuals])
 
                     if len(timestamp_data) < self.num_satellites:
                         padding = np.zeros((self.num_satellites - len(timestamp_data), gnss_features.shape[1]))

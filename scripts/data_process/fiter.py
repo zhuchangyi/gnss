@@ -144,7 +144,7 @@ if __name__ == "__main__":
     root_path = current_script_path.parents[2]
 
     # 构建到 'data/processed' 和 'data/raw' 的路径
-    filtered_path = root_path / "data" / "processed"
+    filtered_path = root_path / "data" / "processed_data"
     data_raw_path = root_path / "data" / "raw"
 
     # 如果您需要构建 'data/sdc2023/train' 的路径
