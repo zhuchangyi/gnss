@@ -28,17 +28,18 @@ class GNSSDataset(Dataset):
             ground_truth_file = os.path.join(subdir, 'ground_truth.csv')
 
             if os.path.exists(gnss_file) and os.path.exists(ground_truth_file):
-                print(ground_truth_file)
+                print(f"Processing files: {gnss_file}, {ground_truth_file}")
+                #print(ground_truth_file)
 
                 gnss_df = pd.read_csv(gnss_file)
                 ground_truth_df = pd.read_csv(ground_truth_file)
-                print(gnss_df.head(2))
-                print(ground_truth_df.head(2))
+                #print(gnss_df.head(2))
+                #print(ground_truth_df.head(2))
 
                 columns_to_remove = ['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']  # 这里填入重复列的名称
                 gnss_df = gnss_df.drop(columns=columns_to_remove)
                 #print(gnss_df.columns)
-                print(ground_truth_df.columns)
+                #print(ground_truth_df.columns)
 
 
                 merged_df = pd.merge(gnss_df, ground_truth_df, on='utcTimeMillis')
@@ -105,7 +106,9 @@ dataset = GNSSDataset(filtered_path)
 dataloader = DataLoader(dataset, batch_size=512, shuffle=True)
 
 # Iterate through the dataloader
+# Iterate through the dataloader
 for gnss_batch, ground_truth_batch in dataloader:
+    # Print the shape of the input data
+    print(f"Input data shape: {gnss_batch.shape}")
     # Process your batch
-
     pass
