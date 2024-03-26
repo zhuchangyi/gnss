@@ -87,16 +87,16 @@ def remove_utc():
 # 检查每个utc星座的个数
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%m/%d/%Y %I:%M:%S %p',
-    handlers=[
-        logging.FileHandler(log_file_path),
-        logging.StreamHandler()
-    ]
-)
-
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     datefmt='%m/%d/%Y %I:%M:%S %p',
+#     handlers=[
+#         logging.FileHandler(log_file_path),
+#         logging.StreamHandler()
+#     ]
+# )
+#
 
 
 def check_satellite_constellations():
@@ -156,7 +156,7 @@ def plot_total_observations():
     plt.show()
 
 
-plot_total_observations()
+#plot_total_observations()
 
 
 # 删除没有观测值的数据
@@ -176,3 +176,4 @@ def remove_missing_signaltype_entries():
                 gnss_df.to_csv(gnss_file, index=False)
 
 # remove_missing_signaltype_entries()
+

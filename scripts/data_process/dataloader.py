@@ -39,34 +39,46 @@ class GNSSDataset(Dataset):
                 unique_timestamps = merged_df['utcTimeMillis'].unique()
 
                 for timestamp in unique_timestamps:
-
                     timestamp_data = merged_df[merged_df['utcTimeMillis'] == timestamp]
-                    #print(timestamp_data.columns)
 
+                    # Calculate pseudorange residuals and LOS vectors for each satellite
+                    pseudorange_residuals = []
+                    los_vectors = []
+                    for index, row in timestamp_data.iterrows():
+                        distance = self._calculate_distance(
+                            row['WlsPositionXEcefMeters'], row['WlsPositionYEcefMeters'], row['WlsPositionZEcefMeters'],
+                            row['SvPositionXEcefMeters'], row['SvPositionYEcefMeters'], row['SvPositionZEcefMeters']
+                        )
 
-                    distances_to_satellites = self._calculate_distance(
-                        timestamp_data['WlsPositionXEcefMeters'].iloc[0],
-                        timestamp_data['WlsPositionYEcefMeters'].iloc[0],
-                        timestamp_data['WlsPositionZEcefMeters'].iloc[0],
-                        timestamp_data['SvPositionXEcefMeters'],
-                        timestamp_data['SvPositionYEcefMeters'],
-                        timestamp_data['SvPositionZEcefMeters']
-                    )
+                        residual = row['RawPseudorangeMeters'] - distance
+                        pseudorange_residuals.append(residual)
 
-                    # Calculate pseudorange residuals
-                    pseudorange_residuals = timestamp_data['RawPseudorangeMeters'] - distances_to_satellites
+                        los_vector = np.array([
+                            row['SvPositionXEcefMeters'] - row['WlsPositionXEcefMeters'],
+                            row['SvPositionYEcefMeters'] - row['WlsPositionYEcefMeters'],
+                            row['SvPositionZEcefMeters'] - row['WlsPositionZEcefMeters']
+                        ])
+                        # Normalize the los_vector
+                        los_vector_normalized = los_vector / np.linalg.norm(los_vector)
+                        los_vectors.append(los_vector_normalized)
 
-                    # Prepare GNSS features
+                    # Convert lists to numpy arrays
+                    pseudorange_residuals = np.array(pseudorange_residuals)
+                    los_vectors = np.stack(los_vectors)
+
+                    # Prepare GNSS features, exclude SvPositionXEcefMeters, SvPositionYEcefMeters, SvPositionZEcefMeters
                     gnss_features = timestamp_data[[
-                        'PseudorangeRateMetersPerSecond', 'PseudorangeRateUncertaintyMetersPerSecond',
-                        'RawPseudorangeMeters', 'RawPseudorangeUncertaintyMeters', 'AccumulatedDeltaRangeMeters',
-                        'SvPositionXEcefMeters', 'SvPositionYEcefMeters', 'SvPositionZEcefMeters',
+                        'Cn0DbHz', 'IonosphericDelayMeters', 'TroposphericDelayMeters',
+                        'SvElevationDegrees', 'SvAzimuthDegrees',
+                        'PseudorangeRateMetersPerSecond', 'RawPseudorangeMeters',
+                        'PseudorangeRateUncertaintyMetersPerSecond',
                         'SvVelocityXEcefMetersPerSecond', 'SvVelocityYEcefMetersPerSecond',
-                        'SvVelocityZEcefMetersPerSecond', 'SvClockBiasMeters'
+                        'SvVelocityZEcefMetersPerSecond',
+                        'SvClockBiasMeters'
                     ]].fillna(0).to_numpy()
 
-                    # Add pseudorange residuals as a feature
-                    gnss_features = np.hstack([gnss_features, pseudorange_residuals.to_numpy().reshape(-1, 1)])
+                    # Add LOS vectors and pseudorange residuals to features
+                    gnss_features = np.hstack([gnss_features, los_vectors, pseudorange_residuals[:, np.newaxis]])
 
                     # Pad features if necessary
                     if gnss_features.shape[0] < self.num_satellites:
