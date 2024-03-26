@@ -114,28 +114,7 @@ def process_data(args):
 # filtered_path = os.path.join(og_path,"filtered_data")
 #print(data_path)
 
-# for trace in os.listdir(data_path):
-#     # print(trace)
-#     for phones in os.listdir(os.path.join(data_path, trace)):
-#         phone_path =os.path.join(data_path,trace,phones)
-#         out_path = os.path.join(filtered_path,trace,phones)
-#         # gt_path=os.path.join(phone_path,"ground_truth.csv")
-#         # shutil.copy2(gt_path,out_path)
-#         if not os.path.exists(out_path):
-#             os.makedirs(out_path)
-#         gnss_csv_path= os.path.join(phone_path,"device_gnss.csv")
-#         gt_path = os.path.join(phone_path,'ground_truth.csv')
-#         gnss_data = pd.read_csv(gnss_csv_path, low_memory=False)
-#         gt_data = pd.read_csv(gt_path)
-#         gt_timestamps = set(gt_data['UnixTimeMillis'])
 
-        #过滤掉那些不在真值数据时间戳中的观测数据记录
-        #gnss_data = gnss_data[gnss_data['utcTimeMillis'].isin(gt_timestamps)]
-        # utc1 = np.array([gnss_data['utcTimeMillis'].unique()])
-        # utc2 = np.array([gt_data['UnixTimeMillis']])
-        # print(utc1.shape[1] - utc2.shape[1])
-        # print(gnss_csv_path)
-        #filterdata(gnss_csv_path,gt_path,out_path)
 
 if __name__ == "__main__":
     current_script_path = Path(__file__).resolve()

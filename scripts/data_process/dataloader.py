@@ -5,6 +5,24 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
+ADR_STATE_UNKNOWN = 0
+ADR_STATE_VALID = 1 << 0
+ADR_STATE_RESET = 1 << 1
+ADR_STATE_CYCLE_SLIP = 1 << 2
+ADR_STATE_HALF_CYCLE_RESOLVED = 1 << 3
+ADR_STATE_HALF_CYCLE_REPORTED = 1 << 4
+
+def get_state_weight(state):
+    weight = 0
+    if state & ADR_STATE_VALID:
+        weight += 32  # VALID 状态权重最高
+    if state & ADR_STATE_HALF_CYCLE_RESOLVED:
+        weight += 16  # HALF_CYCLE_RESOLVED 次之
+    if state & ADR_STATE_HALF_CYCLE_REPORTED:
+        weight += 8  # HALF_CYCLE_REPORTED 次之
+    # 未知或其他状态不加分
+    return weight
+
 class GNSSDataset(Dataset):
     def __init__(self, root_dir, num_satellites=60):
         self.root_dir = Path(root_dir)
@@ -39,7 +57,15 @@ class GNSSDataset(Dataset):
                 unique_timestamps = merged_df['utcTimeMillis'].unique()
 
                 for timestamp in unique_timestamps:
-                    timestamp_data = merged_df[merged_df['utcTimeMillis'] == timestamp]
+                    timestamp_data = merged_df[merged_df['utcTimeMillis'] == timestamp].copy()
+
+                    # 计算每个卫星的ADR状态权重并赋值
+                    timestamp_data.loc[:, 'StateWeight'] = timestamp_data['AccumulatedDeltaRangeState'].apply(
+                        get_state_weight)
+
+                    # 按照仰角、SVID和ADR状态权重进行排序
+                    timestamp_data = timestamp_data.sort_values(by=['SvElevationDegrees', 'Svid', 'StateWeight'],
+                                                                ascending=[False, True, False])
 
                     # Calculate pseudorange residuals and LOS vectors for each satellite
                     pseudorange_residuals = []
