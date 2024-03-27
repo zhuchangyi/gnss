@@ -60,8 +60,8 @@ class GNSSClassifier(nn.Module):
         z_out = self.classifier_z(x)
         return F.log_softmax(x_out, dim=1), F.log_softmax(y_out, dim=1), F.log_softmax(z_out, dim=1)
 
-# Example usage
-model = GNSSClassifier(d_model=16, nhead=4, d_ff=64, num_layers=2, num_satellites=60, num_classes=21)
-input_features = torch.randn(4, 60, 16)  # (batch_size, num_satellites, feature_dim)
-x_out, y_out, z_out = model(input_features)
-print(x_out.shape, y_out.shape, z_out.shape)  # torch.Size([4, 21]), torch.Size([4, 21]), torch.Size([4, 21])
+# 试一下
+# model = GNSSClassifier(d_model=16, nhead=4, d_ff=64, num_layers=2, num_satellites=60, num_classes=21)
+# input_features = torch.randn(4, 60, 16)  # (batch_size, num_satellites, feature_dim)
+# x_out, y_out, z_out = model(input_features)
+# print(x_out.shape, y_out.shape, z_out.shape)  # torch.Size([4, 21]), torch.Size([4, 21]), torch.Size([4, 21])
