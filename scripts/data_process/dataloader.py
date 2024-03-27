@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
+from sklearn.preprocessing import StandardScaler
 
 ADR_STATE_UNKNOWN = 0
 ADR_STATE_VALID = 1 << 0
@@ -50,7 +51,6 @@ class GNSSDataset(Dataset):
                 gnss_df = pd.read_csv(gnss_file)
                 ground_truth_df = pd.read_csv(ground_truth_file)
 
-                # Merge on utcTimeMillis to align data by time
                 columns_to_remove = ['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']
                 gnss_df = gnss_df.drop(columns=columns_to_remove)
                 merged_df = pd.merge(gnss_df, ground_truth_df, on='utcTimeMillis')
@@ -67,7 +67,6 @@ class GNSSDataset(Dataset):
                     timestamp_data = timestamp_data.sort_values(by=['SvElevationDegrees', 'Svid', 'StateWeight'],
                                                                 ascending=[False, True, False])
 
-                    # Calculate pseudorange residuals and LOS vectors for each satellite
                     pseudorange_residuals = []
                     los_vectors = []
                     for index, row in timestamp_data.iterrows():
@@ -88,11 +87,9 @@ class GNSSDataset(Dataset):
                         los_vector_normalized = los_vector / np.linalg.norm(los_vector)
                         los_vectors.append(los_vector_normalized)
 
-                    # Convert lists to numpy arrays
                     pseudorange_residuals = np.array(pseudorange_residuals)
                     los_vectors = np.stack(los_vectors)
 
-                    # Prepare GNSS features, exclude SvPositionXEcefMeters, SvPositionYEcefMeters, SvPositionZEcefMeters
                     gnss_features = timestamp_data[[
                         'Cn0DbHz', 'IonosphericDelayMeters', 'TroposphericDelayMeters',
                         'SvElevationDegrees', 'SvAzimuthDegrees',
@@ -103,7 +100,14 @@ class GNSSDataset(Dataset):
                         'SvClockBiasMeters'
                     ]].fillna(0).to_numpy()
 
-                    # Add LOS vectors and pseudorange residuals to features
+                    # Normalize
+                    scaler_velocity = StandardScaler()
+                    gnss_features[:, 8:11] = scaler_velocity.fit_transform(gnss_features[:, 8:11])
+
+                    # Normalize SvClockBiasMeters
+                    scaler_clock_bias = StandardScaler()
+                    gnss_features[:, 11] = scaler_clock_bias.fit_transform(gnss_features[:, 11].reshape(-1, 1)).flatten()
+
                     gnss_features = np.hstack([gnss_features, los_vectors, pseudorange_residuals[:, np.newaxis]])
 
                     # Pad features if necessary
@@ -130,13 +134,13 @@ class GNSSDataset(Dataset):
 # Usage example
 root_dir = '/Users/park/PycharmProjects/gnss/data/processed_data/2020-06-25-00-34-us-ca-mtv-sb-101'  # Adjust as needed
 
-
-dataset = GNSSDataset(root_dir)
-dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
-
-for features, labels in dataloader:
-    print(features)
-    print(labels)
-    print(f"Batch features shape: {features.shape}")  # 打印特征的形状
-    print(f"Batch labels shape: {labels.shape}")      # 打印标签的形状
-    break
+#
+# dataset = GNSSDataset(root_dir)
+# dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+#
+# for features, labels in dataloader:
+#     print(features)
+#     print(labels)
+#     print(f"Batch features shape: {features.shape}")  # 打印特征的形状
+#     print(f"Batch labels shape: {labels.shape}")      # 打印标签的形状
+#     break
