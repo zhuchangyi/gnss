@@ -7,18 +7,22 @@ from pathlib import Path
 from tqdm import tqdm
 import torch.nn.functional as F
 from datetime import datetime
+import os
 from scripts.network.network import GNSSClassifier
 from torch.utils.tensorboard import SummaryWriter
 
 current_script_path = Path(__file__).resolve()
-root_path = current_script_path.parents[2]
+root_path = current_script_path.parents[0]
 rawdata_path = root_path / "data" / "raw" / "sdc2023" / "train"
 processed_path = root_path / "data" / "processed_data"
 log_path = root_path / "logs" / "train_log"
 
 current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-log_dir = log_path / f'gnss_experiment_{current_time}'
+log_dir = log_path / f'log_{current_time}'
 checkpoint_path = root_path / "checkpoints" / f'model_{current_time}'
+if os.path.exists(log_path):
+    print('path exists')
+
 writer = SummaryWriter(str(log_dir))
 
 
@@ -29,17 +33,17 @@ class Config:
     num_layers = 2
     num_satellites = 60
     num_classes = 21
-    batch_size = 32
+    batch_size = 64
     learning_rate = 1e-3
     weight_decay = 1e-5
-    num_epochs = 1000
+    num_epochs = 10
 
 
 config = Config()
 
 
 class GNSSLoss(nn.Module):
-    def __init__(self, alpha=0.5, num_classes=21, error_range=(-10, 10)):
+    def __init__(self, alpha=0.2, num_classes=21, error_range=(-10, 10)):
         super(GNSSLoss, self).__init__()
         self.alpha = alpha  # 用于平衡CELoss和MSELoss的权重
         self.num_classes = num_classes
