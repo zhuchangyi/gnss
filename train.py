@@ -33,9 +33,9 @@ class Config:
     num_layers = 2
     num_satellites = 60
     num_classes = 21
-    batch_size = 64
-    learning_rate = 1e-3
-    weight_decay = 1e-5
+    batch_size = 4096
+    learning_rate = 1e-4
+    weight_decay = 0
     num_epochs = 10
 
 
@@ -78,8 +78,8 @@ class GNSSLoss(nn.Module):
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-root_dir = '/Users/park/PycharmProjects/gnss/data/processed_data/2020-06-25-00-34-us-ca-mtv-sb-101'
-dataset = GNSSDataset(root_dir)
+#root_dir = '/Users/park/PycharmProjects/gnss/data/processed_data/2020-06-25-00-34-us-ca-mtv-sb-101'
+dataset = GNSSDataset(processed_path)
 train_size = int(0.8 * len(dataset))
 val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
@@ -156,5 +156,20 @@ for epoch in range(config.num_epochs):
 torch.save(model.state_dict(), checkpoint_path)
 
 # 记录超参数
-writer.add_hparams(vars(config), {'HParam/Loss': val_loss})
+writer.add_hparams(hparam_dict={
+    'd_model': config.d_model,
+    'nhead': config.nhead,
+    'd_ff': config.d_ff,
+    'num_layers': config.num_layers,
+    'learning_rate': config.learning_rate,
+    'weight_decay': config.weight_decay,
+    'batch_size': config.batch_size,
+    'alpha': criterion.alpha,
+    },
+    metric_dict={
+        'train_loss': train_loss,
+        'val_loss': val_loss,
+    }
+)
+writer.flush()
 writer.close()

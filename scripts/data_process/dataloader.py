@@ -132,7 +132,7 @@ class GNSSDataset(Dataset):
         return torch.tensor(self.data[idx], dtype=torch.float), torch.tensor(self.labels[idx], dtype=torch.float)
 
 # Usage example
-root_dir = '/Users/park/PycharmProjects/gnss/data/processed_data/2020-06-25-00-34-us-ca-mtv-sb-101'  # Adjust as needed
+root_dir = '/Users/park/PycharmProjects/gnss/data/processed_data/2020-06-25-00-34-us-ca-mtv-sb-101'
 
 #
 # dataset = GNSSDataset(root_dir)
